@@ -23,6 +23,11 @@ pipeline {
         SUFIJOHOST = "192.168.0.14"
     }
     stages {
+        stage('Verificar MySQL') {
+            steps {
+                sh 'which mysql || echo "MySQL no encontrado en PATH"'
+            }
+        }
         stage('Creando Usuario') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'mysql', passwordVariable: 'PASSWD_DB', usernameVariable: 'USER_DB')]) {
