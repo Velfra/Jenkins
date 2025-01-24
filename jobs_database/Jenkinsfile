@@ -24,6 +24,11 @@ pipeline {
         SUFIJOPORT = "3306"
     }
     stages {
+        stage('Verificar MySQL') {
+            steps {
+                sh 'which mysql || echo "MySQL no encontrado en PATH"'
+            }
+        }
         stage('Creando Usuario') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'mysql', passwordVariable: 'PASSWD_DB', usernameVariable: 'USER_DB')]) {
@@ -39,11 +44,15 @@ pipeline {
                             }
                             
                             for (int i = 0; i < databases.size(); ++i) {
-                                // Comandos con el puerto incluido
-                                sh """
-                                    mysql -u${USER_DB} -p${PASSWD_DB} -h ${databases[i]}.${SUFIJOHOST} -P ${SUFIJOPORT} -e "CREATE USER IF NOT EXISTS '${params.USUARIO}'@'%' IDENTIFIED BY '${params.PASSWORD}';"
-                                    mysql -u${USER_DB} -p${PASSWD_DB} -h ${databases[i]}.${SUFIJOHOST} -P ${SUFIJOPORT} -e "GRANT ${env.PERMISO} ON *.* TO '${params.USUARIO}'@'%';"
+                                // Crear archivo de script temporal
+                                writeFile file: 'create_user.sh', text: """
+                                #!/bin/bash
+                                mysql -u\$USER_DB -p\$PASSWD_DB -h ${databases[i]}.${env.SUFIJOHOST} -P ${params.PUERTO} -e "CREATE USER IF NOT EXISTS '${params.USUARIO}'@'%' IDENTIFIED BY '${params.PASSWORD}';"
+                                mysql -u\$USER_DB -p\$PASSWD_DB -h ${databases[i]}.${env.SUFIJOHOST} -P ${params.PUERTO} -e "GRANT ${env.PERMISO} ON *.* TO '${params.USUARIO}'@'%';"
                                 """
+                                sh 'chmod +x create_user.sh'
+                                sh './create_user.sh'
+                                sh 'rm create_user.sh'
                             }
                         }
                     }
