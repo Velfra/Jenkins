@@ -30,8 +30,13 @@ pipeline {
                             }
 
                             for (int i = 0; i < browsers.size(); ++i) {
-                                sh  "mysql -u${USER_DB} -p${PASSWD_DB} -e "CREATE USER IF NOT EXISTS '$USUARIO' IDENTIFIED BY '$PASSWORD'";
-                                sh  "mysql -u${USER_DB} -p${PASSWD_DB} -e "GRANT $PERMISO ON *.* TO '$USUARIO'";
+                                sh """
+                                    mysql -u${USER_DB} -p${PASSWD_DB} <<EOF
+                                    CREATE USER IF NOT EXISTS '${params.USUARIO}'@'%' IDENTIFIED BY '${params.PASSWORD}';
+                                    GRANT ${env.PERMISO} ON *.* TO '${params.USUARIO}'@'%';
+                                    EXIT;
+                                    EOF
+                                """
 
                             }
                         }
