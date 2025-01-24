@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    environment {
+        PATH = "$PATH:/usr/bin"  // Ajustar PATH para incluir la ruta de mysql
+    }
     parameters {
         string(defaultValue: '', description: 'Nombre del usuario a crear', name: 'USUARIO', trim: true)
         string(defaultValue: '', description: 'Contraseña nueva del usuario a crear', name: 'PASSWORD', trim: true)
@@ -21,6 +24,11 @@ pipeline {
         PERMISO = "SELECT, SHOW VIEW"
     }
     stages {
+        stage('Verificar MySQL') {
+            steps {
+                sh 'which mysql || echo "MySQL no encontrado en PATH"'
+            }
+        }
         stage('Creando Usuario') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'mysql', passwordVariable: 'PASSWD_DB', usernameVariable: 'USER_DB')]) {
@@ -38,7 +46,8 @@ pipeline {
                             for (int i = 0; i < databases.size(); ++i) {
                                 // Ejecutar comandos MySQL dentro de una sesión interactiva
                                 sh """
-                                    mysql -u${USER_DB} -p${PASSWD_DB} <<EOF
+                                    echo "Ejecutando comandos en MySQL..."
+                                    mysql -u${env.USER_DB} -p${env.PASSWD_DB} <<EOF
                                     CREATE USER IF NOT EXISTS '${params.USUARIO}'@'%' IDENTIFIED BY '${params.PASSWORD}';
                                     GRANT ${env.PERMISO} ON *.* TO '${params.USUARIO}'@'%';
                                     EXIT;
