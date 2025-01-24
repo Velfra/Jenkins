@@ -38,8 +38,14 @@ pipeline {
                             }
                             
                             for (int i = 0; i < databases.size(); ++i) {
-                                sh "mysql -u${env.USER_DB} -p${env.PASSWD_DB} -h ${databases[i]}.${env.SUFIJOHOST} -P ${params.PUERTO} -e \"CREATE USER IF NOT EXISTS '${params.USUARIO}'@'%' IDENTIFIED BY '${params.PASSWORD}';\""
-                                sh "mysql -u${env.USER_DB} -p${env.PASSWD_DB} -h ${databases[i]}.${env.SUFIJOHOST} -P ${params.PUERTO} -e \"GRANT ${env.PERMISO} ON *.* TO '${params.USUARIO}'@'%';\""
+                                // Usar script en archivo temporal para evitar interpolación insegura
+                                writeFile file: 'create_user.sh', text: """
+                                mysql -u${USER_DB} -p${PASSWD_DB} -h ${databases[i]}.${SUFIJOHOST} -P ${params.PUERTO} -e "CREATE USER IF NOT EXISTS '${params.USUARIO}'@'%' IDENTIFIED BY '${params.PASSWORD}';"
+                                mysql -u${USER_DB} -p${PASSWD_DB} -h ${databases[i]}.${SUFIJOHOST} -P ${params.PUERTO} -e "GRANT ${env.PERMISO} ON *.* TO '${params.USUARIO}'@'%';"
+                                """
+                                sh 'chmod +x create_user.sh'
+                                sh './create_user.sh'
+                                sh 'rm create_user.sh'
                             }
                         }
                     }
